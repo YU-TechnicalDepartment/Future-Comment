@@ -4,7 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>時空チャット・タイムカプセル</title>
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#435e91">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="時空チャット">
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('PWA ServiceWorker 登録成功!', reg))
+          .catch(err => console.error('PWA ServiceWorker 登録失敗...', err));
+      });
+    }
+  </script>
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
   <style>
     /* --- Material Design 3 ベースの動的テーマ定義 --- */
     :root {
@@ -80,7 +98,7 @@
       background: linear-gradient(180deg, var(--md-surface) 0%, var(--md-bg) 100%);
     }
 
-    /* 改良：なぞの画像を、洗練された時空を回る砂時計のミニマルなアニメーションに変更 */
+    /* なぞの画像を、洗練された時空を回る砂時計のミニマルなアニメーションに変更 */
     .welcome-icon-visual {
       font-size: 52px;
       color: var(--md-primary);
@@ -594,7 +612,7 @@
       border: 2px solid var(--md-primary);
     }
 
-    /* 改良：最大高の制限と内部スクロール対応により、ボタンの画面外食い込みを完全に防止 */
+    /* 最大高の制限と内部スクロール対応により、ボタンの画面外食い込みを完全に防止 */
     .tutorial-popover {
       position: absolute;
       background-color: var(--md-surface);
@@ -723,7 +741,7 @@
   <div class="custom-dialog-overlay" id="delete-dialog-overlay">
     <div class="custom-dialog-card">
       <h3 class="dialog-title">メッセージの消去</h3>
-      <p class="dialog-body">このメッセージをタイムラインから完全に削除してもよろしいですか？この操作は取り消せません。</p>
+      <p class="dialog-body">このメッセージをタイムラインから完全に削除してもよろしいですか？この操作は取り消せるものではありません。</p>
       <div class="dialog-actions">
         <button class="md-btn tonal" onclick="closeDeleteDialog()">キャンセル</button>
         <button class="md-btn danger" onclick="executeConfirmDelete()">削除する</button>
@@ -759,11 +777,11 @@
     let pendingDeleteId = null;  
 
     let tutorialStep = 0;
-    // 改良：すべての絵文字を厳禁とし、Font AwesomeのUIアイコンタグ（文字列内）へと置き換え
+    // 絵文字を完全に排除し、Font Awesomeアイコンと連動したシステムUI仕様に変更
     const tutorialSteps = [
-      { elementId: 'partner-avatar-ui', icon: 'fa-user-gear', title: 'プロファイル設定', desc: 'ここをタップすると別画面が開き、対話相手（過去/未来の自分、あるいは別の誰か）の名前変更や、好きな写真のアップロードが可能です。' },
-      { elementId: 'header-theme-btn', icon: 'fa-sliders', title: 'パレット機能', desc: 'アプリの見た目を「ライトテーマ」と「ダークテーマ」にいつでも交互に切り替えられます。好みの明度で使いましょう。' },
-      { elementId: 'header-help-btn', icon: 'fa-circle-info', title: 'ヘルプ確認', desc: '操作やアプリの仕様をもう一度確認したくなったときは、このクエスチョンマークを押すといつでもこのツアーを再開できます。' },
+      { elementId: 'partner-avatar-ui', icon: 'fa-user-gear', title: 'プロファイル設定', desc: 'ここをタップすると別画面が開かれます。対話相手（過去や未来の自分、あるいは別の誰か）の名前変更や、好きな写真のアップロードが可能です。' },
+      { elementId: 'header-theme-btn', icon: 'fa-sliders', title: 'パレット機能', desc: 'アプリの見た目を「ライトテーマ」と「ダークテーマ」にいつでも切り替えられます。好みの明度を選択してご利用ください。' },
+      { elementId: 'header-help-btn', icon: 'fa-circle-info', title: 'ヘルプ確認', desc: '操作やアプリの仕様をもう一度確認したくなったときは、このヘルプアイコンを押すことでいつでもこのツアーを再開できます。' },
       { elementId: 'chat-timeline', icon: 'fa-timeline', title: 'タイムラインの構造', desc: '過去から届く「タイムカプセル（左側）」と、あなたの「通常返信（右側）」が並びます。届く前のカプセルは鍵がかかりカウントダウンされます。' },
       { elementId: 'target-input-bar', icon: 'fa-paper-plane', title: '時空送信と通常返信', desc: 'カプセル横の矢印を押すと「通常返信」となり即時送信。何もない状態から送ると未来への「カプセル投下」となり、誤送信を防ぐ時間指定シートが安全に開きます。' }
     ];
@@ -976,7 +994,8 @@
         isOpened: false
       });
 
-      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.notification) {
+      // エラーセーフ：OneSignalや各種プッシュ通知設定をここに割り当てるための安全な分岐条件
+      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.notification && cordova.plugins.notification.local) {
         cordova.plugins.notification.local.schedule({
           id: Math.floor(Math.random() * 100000),
           title: `${db.partner.name}からのメッセージ`,
@@ -1081,7 +1100,7 @@
             row.innerHTML = `
               <div class="partner-avatar" style="background-color: var(--md-outline);"><i class="fa-solid fa-lock"></i></div>
               <div>
-                <div class="bubble" style="color:transparent; min-width:140px;">🔒━━━━━🔒</div>
+                <div class="bubble" style="color:transparent; min-width:140px; border:1px dashed var(--md-outline); background:none; filter:none; display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-lock" style="color:var(--md-outline);"></i></div>
                 <div class="capsule-meta"><i class="fa-solid fa-clock"></i> ${countdownStr}</div>
               </div>
               <div class="message-actions">
@@ -1129,15 +1148,15 @@
       highlight.style.width = `${rect.width + (pad * 2)}px`;
       highlight.style.height = `${rect.height + (pad * 2)}px`;
 
-      // 絵文字を完全に排除し、Font AwesomeのUI準拠アイコンを用いた見出しの組み立て
+      // UIに準拠したFont Awesomeアイコンを用いた見出しの組み立て
       document.getElementById('tutorial-title').innerHTML = `<i class="fa-solid ${step.icon}"></i> ${step.title}`;
       document.getElementById('tutorial-desc').innerText = step.desc;
       document.getElementById('tutorial-progress-ui').innerText = `${tutorialStep + 1} / ${tutorialSteps.length}`;
       document.getElementById('tutorial-next-btn').innerText = (tutorialStep === tutorialSteps.length - 1) ? "完了" : "次へ";
 
-      // 改良：あらゆる端末サイズでの食い込みを「臨機応変」に回避する高度な位置決めロジック
+      // あらゆる端末サイズでの食い込みを「臨機応変」に回避する配置ロジック
       const popoverWidth = 290;
-      const popoverHeight = 220; // スタイルのmax-heightと同じ
+      const popoverHeight = 220; 
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
 
@@ -1150,7 +1169,6 @@
         // ターゲットが画面の半分より下にある場合：上に配置
         let topPos = rect.top - popoverHeight - 12;
         if (topPos < 10) {
-          // 上部にもスペースが足りなければ画面中央寄りの安全な位置に緊急回避
           topPos = Math.max(10, rect.top - 160);
         }
         popover.style.top = `${topPos}px`;
@@ -1158,7 +1176,6 @@
         // ターゲットが画面の半分より上にある場合：下に配置
         let topPos = rect.bottom + 12;
         if (topPos + popoverHeight > windowHeight - 10) {
-          // 下部にもスペースが足りなければターゲットの上に被らない位置へ調整
           topPos = Math.max(10, windowHeight - popoverHeight - 20);
         }
         popover.style.top = `${topPos}px`;

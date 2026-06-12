@@ -1,12 +1,30 @@
 {
+  "id": "/Future-Comment/index.html",
   "short_name": "時空チャット",
   "name": "時空チャット・タイムカプセル",
+  "description": "未来へ送るタイムカプセルと、過去からのメッセージへの通常返信を組み合わせた、時空を超えるチャット型個人ログアプリです。",
   "icons": [
     {
-      "src": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/svgs/solid/hourglass-half.svg",
-      "type": "image/svg+xml",
+      "src": "https://via.placeholder.com/512x512/435e91/ffffff?text=TimeChat",
+      "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://via.placeholder.com/1280x720/435e91/ffffff?text=Desktop+Version",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "パソコンでの表示画面"
+    },
+    {
+      "src": "https://via.placeholder.com/720x1280/435e91/ffffff?text=Mobile+Version",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "スマートフォンでの表示画面"
     }
   ],
   "start_url": "index.html",

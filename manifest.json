@@ -1,0 +1,17 @@
+{
+  "short_name": "時空チャット",
+  "name": "時空チャット・タイムカプセル",
+  "icons": [
+    {
+      "src": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/svgs/solid/hourglass-half.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "index.html",
+  "background_color": "#f9f9ff",
+  "theme_color": "#435e91",
+  "display": "standalone",
+  "orientation": "portrait"
+}

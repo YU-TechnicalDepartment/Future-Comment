@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>時空チャット・タイムカプセル</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    /* --- Material Design 3 ベースの動的テーマ定義 --- */
+    :root {
+      --md-bg: #f9f9ff;
+      --md-on-bg: #1a1b23;
+      --md-surface: #f3f3fa;
+      --md-surface-variant: #e1e2ec;
+      --md-primary: #435e91;
+      --md-on-primary: #ffffff;
+      --md-secondary-container: #d7e2ff;
+      --md-on-secondary-container: #001b3e;
+      --md-error: #ba1a1a;
+      --md-on-error: #ffffff;
+      --md-outline: #74777f;
+      --md-scrim: rgba(0, 0, 0, 0.3);
+    }
+
+    body.dark-theme {
+      --md-bg: #121318;
+      --md-on-bg: #e2e2e9;
+      --md-surface: #1a1b23;
+      --md-surface-variant: #252631;
+      --md-primary: #adc6ff;
+      --md-on-primary: #002e69;
+      --md-secondary-container: #3b465b;
+      --md-on-secondary-container: #d7e2ff;
+      --md-error: #ffb4ab;
+      --md-on-error: #690005;
+      --md-outline: #8e9099;
+      --md-scrim: rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+      background-color: var(--md-bg);
+      color: var(--md-on-bg);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* --- ページ構造 --- */
+    .view-page {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background-color: var(--md-bg);
+      transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s;
+    }
+
+    /* ウェルカム・オンボーディング画面 */
+    #welcome-page {
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      text-align: center;
+      background: linear-gradient(180deg, var(--md-surface) 0%, var(--md-bg) 100%);
+    }
+
+    /* 改良：なぞの画像を、洗練された時空を回る砂時計のミニマルなアニメーションに変更 */
+    .welcome-icon-visual {
+      font-size: 52px;
+      color: var(--md-primary);
+      margin-bottom: 32px;
+      width: 90px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed var(--md-primary);
+      border-radius: 50%;
+      animation: rotateHourglass 4s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+    }
+
+    @keyframes rotateHourglass {
+      0% { transform: rotate(0deg); }
+      45% { transform: rotate(0deg); }
+      55% { transform: rotate(180deg); }
+      95% { transform: rotate(180deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .welcome-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 0 16px 0;
+      color: var(--md-primary);
+      letter-spacing: 1px;
+    }
+
+    .welcome-desc {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--md-on-bg);
+      opacity: 0.8;
+      max-width: 280px;
+      margin-bottom: 40px;
+    }
+
+    header {
+      background-color: var(--md-surface);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--md-surface-variant);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+      z-index: 10;
+    }
+
+    .partner-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background-color: var(--md-secondary-container);
+      background-size: cover;
+      background-position: center;
+      color: var(--md-on-secondary-container);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0; 
+      overflow: hidden;
+    }
+
+    .partner-info {
+      flex: 1;
+      cursor: pointer;
+    }
+
+    .partner-name {
+      font-size: 16px;
+      font-weight: 500;
+      margin: 0;
+    }
+
+    .header-action {
+      background: none;
+      border: none;
+      color: var(--md-outline);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 8px;
+    }
+
+    /* --- チャットタイムライン --- */
+    #chat-timeline {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      max-width: 85%;
+    }
+
+    .message-row.me {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-row.partner {
+      align-self: flex-start;
+    }
+
+    .me-bubble-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .reply-quote {
+      font-size: 12px;
+      background-color: var(--md-surface-variant);
+      color: var(--md-outline);
+      padding: 6px 12px;
+      border-radius: 12px 12px 4px 12px;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border-left: 3px solid var(--md-primary);
+      opacity: 0.85;
+    }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 20px;
+      font-size: 15px;
+      line-height: 1.5;
+      word-break: break-all;
+    }
+
+    .message-row.me .bubble {
+      background-color: var(--md-secondary-container);
+      color: var(--md-on-secondary-container);
+      border-bottom-right-radius: 4px;
+    }
+
+    .message-row.partner .bubble {
+      background-color: var(--md-surface-variant);
+      color: var(--md-on-bg);
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-row.partner.locked {
+      height: 72px; 
+    }
+
+    .message-row.partner.locked .bubble {
+      background: linear-gradient(135deg, var(--md-surface-variant) 0%, var(--md-surface) 100%);
+      border: 1px dashed var(--md-outline);
+      filter: blur(4px);
+      user-select: none;
+      pointer-events: none;
+      height: 48px;
+      display: flex;
+      align-items: center;
+    }
+
+    .capsule-meta {
+      font-size: 11px;
+      color: var(--md-primary);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 16px;
+    }
+
+    .message-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      color: var(--md-outline);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .action-btn.delete-btn {
+      color: var(--md-error);
+    }
+
+    /* --- チャット入力エリア --- */
+    .input-bar {
+      background-color: var(--md-surface);
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-top: 1px solid var(--md-surface-variant);
+    }
+
+    .reply-context-indicator {
+      display: none;
+      background-color: var(--md-surface-variant);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--md-primary);
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .input-field-container {
+      flex: 1;
+      background-color: var(--md-surface-variant);
+      border-radius: 24px;
+      padding: 4px 16px;
+      display: flex;
+      align-items: center;
+    }
+
+    #message-input {
+      flex: 1;
+      background: none;
+      border: none;
+      height: 40px;
+      color: var(--md-on-bg);
+      font-size: 15px;
+    }
+
+    #message-input:focus {
+      outline: none;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      color: var(--md-primary);
+      font-size: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* --- 時空送信オプションシート --- */
+    .send-menu-sheet {
+      position: fixed;
+      bottom: 0; left: 0; width: 100vw;
+      background-color: var(--md-surface);
+      border-top-left-radius: 28px; border-top-right-radius: 28px;
+      padding: 24px;
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+      z-index: 200;
+      animation: slideUp 0.25s cubic-bezier(0.2, 0, 0, 1) both;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .sheet-backdrop {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background-color: var(--md-scrim);
+      z-index: 199;
+      display: none;
+    }
+
+    .time-options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .time-chip-btn {
+      background-color: var(--md-surface-variant);
+      border: 2px solid transparent;
+      color: var(--md-on-bg);
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .time-chip-btn.active {
+      background-color: var(--md-secondary-container);
+      border-color: var(--md-primary);
+      color: var(--md-on-secondary-container);
+    }
+
+    .custom-time-input-box {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      background-color: var(--md-surface-variant);
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    .custom-input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .md-select {
+      height: 48px;
+      background-color: var(--md-surface);
+      color: var(--md-on-bg);
+      border: 1px solid var(--md-outline);
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 15px;
+    }
+
+    /* --- アプリ内カスタム・ダイアログ --- */
+    .custom-dialog-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background-color: var(--md-scrim);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .custom-dialog-card {
+      background-color: var(--md-surface);
+      border-radius: 28px;
+      padding: 24px;
+      max-width: 320px;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+      animation: dialogFadeIn 0.2s cubic-bezier(0.2, 0, 0, 1) both;
+    }
+
+    @keyframes dialogFadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .dialog-title {
+      font-size: 18px;
+      font-weight: 500;
+      margin: 0 0 12px 0;
+      color: var(--md-on-bg);
+    }
+
+    .dialog-body {
+      font-size: 14px;
+      color: var(--md-outline);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* --- 別画面：プロファイル設定ページ --- */
+    #profile-page {
+      z-index: 30;
+      transform: translateX(100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #profile-page.active {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .settings-container {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .avatar-picker-wrapper {
+      position: relative;
+      cursor: pointer;
+    }
+
+    .big-avatar-preview {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background-color: var(--md-secondary-container);
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: var(--md-on-secondary-container);
+      border: 2px solid var(--md-primary);
+    }
+
+    .avatar-edit-badge {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      background-color: var(--md-primary);
+      color: var(--md-on-primary);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .md-text-field-group {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .md-label {
+      font-size: 13px;
+      color: var(--md-primary);
+      font-weight: 500;
+    }
+
+    .md-input {
+      width: 100%;
+      height: 52px;
+      background-color: var(--md-surface-variant);
+      border: 1px solid var(--md-outline);
+      border-radius: 12px;
+      padding: 0 16px;
+      color: var(--md-on-bg);
+      font-size: 16px;
+    }
+
+    .md-input:focus {
+      outline: 2px solid var(--md-primary);
+    }
+
+    .md-btn {
+      height: 44px;
+      border: none;
+      border-radius: 22px;
+      font-weight: 500;
+      font-size: 15px;
+      cursor: pointer;
+      padding: 0 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .md-btn.filled { background-color: var(--md-primary); color: var(--md-on-primary); }
+    .md-btn.tonal { background-color: var(--md-surface-variant); color: var(--md-on-bg); }
+    .md-btn.danger { background-color: var(--md-error); color: var(--md-on-error); }
+
+    .md-btn.filled:disabled {
+      background-color: var(--md-surface-variant);
+      color: var(--md-outline);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    /* --- チュートリアルレイヤー（レイアウト食い込み対策・レスポンシブ最適化版） --- */
+    #tutorial-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+    }
+
+    .tutorial-highlight {
+      position: absolute;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      border-radius: 8px;
+      transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+      z-index: 1001;
+      border: 2px solid var(--md-primary);
+    }
+
+    /* 改良：最大高の制限と内部スクロール対応により、ボタンの画面外食い込みを完全に防止 */
+    .tutorial-popover {
+      position: absolute;
+      background-color: var(--md-surface);
+      border: 1px solid var(--md-surface-variant);
+      color: var(--md-on-bg);
+      padding: 16px;
+      border-radius: 20px;
+      width: 290px;
+      max-height: 220px; /* 縦幅の最大を抑制 */
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      z-index: 1002;
+      transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tutorial-popover-content {
+      overflow-y: auto; /* 万が一テキストが溢れても内部スクロールさせてボタン位置を固定 */
+      flex: 1;
+      margin-bottom: 12px;
+      padding-right: 4px;
+    }
+
+    .tutorial-popover h3 { margin: 0 0 6px 0; font-size: 15px; color: var(--md-primary); display: flex; align-items: center; gap: 8px; }
+    .tutorial-popover h3 i { font-size: 14px; }
+    .tutorial-popover p { margin: 0; font-size: 13px; line-height: 1.5; opacity: 0.9; }
+    .tutorial-popover-footer { display: flex; justify-content: flex-end; gap: 8px; align-items: center; flex-shrink: 0; }
+    .tutorial-progress-dot { font-size: 11px; color: var(--md-outline); margin-right: auto; }
+  </style>
+</head>
+<body>
+
+  <div class="view-page" id="welcome-page">
+    <div class="welcome-icon-visual">
+      <i class="fa-solid fa-hourglass-half"></i>
+    </div>
+    <h2 class="welcome-title">過去の自分と話そう！</h2>
+    <p class="welcome-desc">
+      未来へ送る「タイムカプセル」と、過去からのメッセージへの「通常返信」を組み合わせた、時空を超えるチャット型個人ログアプリです。
+    </p>
+    <button class="md-btn filled" style="height: 48px; border-radius: 24px; padding: 0 40px;" onclick="exitWelcomePage()">
+      はじめよう <i class="fa-solid fa-arrow-right"></i>
+    </button>
+  </div>
+
+  <div class="view-page" id="main-page">
+    <header>
+      <div class="partner-avatar" id="partner-avatar-ui" onclick="openProfilePage()"></div>
+      <div class="partner-info" onclick="openProfilePage()">
+        <p class="partner-name" id="partner-name-ui">未来の自分</p>
+      </div>
+      <button class="header-action" id="header-theme-btn" onclick="toggleTheme()"><i class="fa-solid fa-palette"></i></button>
+      <button class="header-action" id="header-help-btn" onclick="startTutorial()"><i class="fa-solid fa-circle-question"></i></button>
+    </header>
+
+    <div id="chat-timeline"></div>
+
+    <div class="input-bar" id="target-input-bar">
+      <div class="reply-context-indicator" id="reply-indicator">
+        <span id="reply-indicator-text">通常返信モード</span>
+        <button class="action-btn" style="padding:2px;" onclick="cancelReplyContext()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="input-row">
+        <div class="input-field-container">
+          <input type="text" id="message-input" placeholder="メッセージを入力...">
+        </div>
+        <button class="icon-btn" id="target-send-btn" onclick="handleSendTrigger()"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet-backdrop" id="sheet-backdrop" onclick="closeSendMenuSheet()"></div>
+  <div class="send-menu-sheet" id="send-menu-sheet">
+    <span class="md-label" style="font-size:15px;">時空（メッセージ到達時間）の選択</span>
+    
+    <div class="time-options-grid">
+      <button class="time-chip-btn" onclick="selectTimeMode('capsule', 10)">10秒後（テスト）</button>
+      <button class="time-chip-btn" onclick="selectTimeMode('capsule', 300)">5分後</button>
+      <button class="time-chip-btn" onclick="selectTimeMode('capsule', 3600)">1時間後</button>
+      <button class="time-chip-btn" onclick="selectTimeMode('capsule', 86400)">1日後</button>
+      <button class="time-chip-btn" style="grid-column: span 2;" onclick="selectTimeMode('custom', null)">カスタム時間指定</button>
+    </div>
+
+    <div class="custom-time-input-box" id="custom-time-box">
+      <label class="md-label">どれくらい未来に届けますか？</label>
+      <div class="custom-input-row">
+        <input type="number" id="custom-time-value" class="md-input" style="flex:1; height:48px;" value="7" min="1">
+        <select id="custom-time-unit" class="md-select">
+          <option value="m">分</option>
+          <option value="h">時間</option>
+          <option value="d" selected>日</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <button class="md-btn tonal" style="flex:1;" onclick="closeSendMenuSheet()">キャンセル</button>
+      <button class="md-btn filled" id="final-capsule-send-btn" style="flex:1;" onclick="processCapsuleSend()" disabled><i class="fa-solid fa-hourglass-start"></i>時空へ投下</button>
+    </div>
+  </div>
+
+  <div class="view-page" id="profile-page">
+    <header>
+      <button class="header-action" onclick="closeProfilePage()"><i class="fa-solid fa-arrow-left"></i></button>
+      <div class="partner-info">
+        <p class="partner-name">プロファイル設定</p>
+      </div>
+    </header>
+    
+    <div class="settings-container">
+      <div class="avatar-picker-wrapper" onclick="triggerImageSelect()">
+        <div class="big-avatar-preview" id="settings-avatar-preview"></div>
+        <div class="avatar-edit-badge"><i class="fa-solid fa-camera"></i></div>
+      </div>
+      <input type="file" id="avatar-file-input" accept="image/*" style="display:none;" onchange="handleImageUpload(this)">
+
+      <div class="md-text-field-group">
+        <label class="md-label">対話相手の名前</label>
+        <input type="text" id="settings-name-input" class="md-input" placeholder="名前を入力">
+      </div>
+
+      <button class="md-btn filled" style="width:100%; height:48px; border-radius:24px; margin-top:16px;" onclick="saveProfileData()"><i class="fa-solid fa-check"></i>設定を保存</button>
+    </div>
+  </div>
+
+  <div class="custom-dialog-overlay" id="delete-dialog-overlay">
+    <div class="custom-dialog-card">
+      <h3 class="dialog-title">メッセージの消去</h3>
+      <p class="dialog-body">このメッセージをタイムラインから完全に削除してもよろしいですか？この操作は取り消せません。</p>
+      <div class="dialog-actions">
+        <button class="md-btn tonal" onclick="closeDeleteDialog()">キャンセル</button>
+        <button class="md-btn danger" onclick="executeConfirmDelete()">削除する</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tutorial-overlay">
+    <div class="tutorial-highlight" id="tutorial-highlight"></div>
+    <div class="tutorial-popover" id="tutorial-popover">
+      <div class="tutorial-popover-content">
+        <h3 id="tutorial-title"></h3>
+        <p id="tutorial-desc"></p>
+      </div>
+      <div class="tutorial-popover-footer">
+        <span class="tutorial-progress-dot" id="tutorial-progress-ui">1 / 5</span>
+        <button class="md-btn tonal" style="height:32px; padding:0 12px; font-size:12px;" onclick="closeTutorial()">スキップ</button>
+        <button class="md-btn filled" style="height:32px; padding:0 16px; font-size:12px; flex:none;" id="tutorial-next-btn" onclick="nextTutorialStep()">次へ</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let db = {
+      theme: "light", 
+      partner: { name: "未来の自分", avatarData: "" },
+      messages: []
+    };
+
+    let currentReplyTargetId = null; 
+    let selectedMode = null; 
+    let selectedSecondsValue = 0;
+    let pendingDeleteId = null;  
+
+    let tutorialStep = 0;
+    // 改良：すべての絵文字を厳禁とし、Font AwesomeのUIアイコンタグ（文字列内）へと置き換え
+    const tutorialSteps = [
+      { elementId: 'partner-avatar-ui', icon: 'fa-user-gear', title: 'プロファイル設定', desc: 'ここをタップすると別画面が開き、対話相手（過去/未来の自分、あるいは別の誰か）の名前変更や、好きな写真のアップロードが可能です。' },
+      { elementId: 'header-theme-btn', icon: 'fa-sliders', title: 'パレット機能', desc: 'アプリの見た目を「ライトテーマ」と「ダークテーマ」にいつでも交互に切り替えられます。好みの明度で使いましょう。' },
+      { elementId: 'header-help-btn', icon: 'fa-circle-info', title: 'ヘルプ確認', desc: '操作やアプリの仕様をもう一度確認したくなったときは、このクエスチョンマークを押すといつでもこのツアーを再開できます。' },
+      { elementId: 'chat-timeline', icon: 'fa-timeline', title: 'タイムラインの構造', desc: '過去から届く「タイムカプセル（左側）」と、あなたの「通常返信（右側）」が並びます。届く前のカプセルは鍵がかかりカウントダウンされます。' },
+      { elementId: 'target-input-bar', icon: 'fa-paper-plane', title: '時空送信と通常返信', desc: 'カプセル横の矢印を押すと「通常返信」となり即時送信。何もない状態から送ると未来への「カプセル投下」となり、誤送信を防ぐ時間指定シートが安全に開きます。' }
+    ];
+
+    window.onload = function() {
+      const saved = localStorage.getItem('spacetimelog_v8');
+      if (saved) {
+        db = JSON.parse(saved);
+      } else {
+        db.messages = [
+          { id: 9991, type: "capsule", text: "ここに過去から届いたメッセージが表示されます。横の「返信ボタン」から返事を書いてみましょう。", openTime: Date.now() - 1000, isOpened: true }
+        ];
+      }
+
+      if (db.theme === "dark") {
+        document.body.classList.add('dark-theme');
+      } else {
+        document.body.classList.remove('dark-theme');
+      }
+
+      updateProfileUI();
+      renderTimeline();
+      setInterval(tick, 1000);
+
+      if (!localStorage.getItem('welcome_completed_v8')) {
+        document.getElementById('welcome-page').style.display = 'flex';
+      } else {
+        document.getElementById('welcome-page').style.display = 'none';
+      }
+    };
+
+    function exitWelcomePage() {
+      document.getElementById('welcome-page').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('welcome-page').style.display = 'none';
+        localStorage.setItem('welcome_completed_v8', 'true');
+        startTutorial();
+      }, 300);
+    }
+
+    function updateProfileUI() {
+      document.getElementById('partner-name-ui').innerText = db.partner.name;
+      const avatarUi = document.getElementById('partner-avatar-ui');
+      if (db.partner.avatarData) {
+        avatarUi.style.backgroundImage = `url(${db.partner.avatarData})`;
+        avatarUi.innerHTML = "";
+      } else {
+        avatarUi.style.backgroundImage = "none";
+        avatarUi.innerHTML = `<i class="fa-solid fa-user"></i>`;
+      }
+    }
+
+    function saveStorage() {
+      localStorage.setItem('spacetimelog_v8', JSON.stringify(db));
+    }
+
+    function toggleTheme() {
+      if (document.body.classList.contains('dark-theme')) {
+        document.body.classList.remove('dark-theme');
+        db.theme = "light";
+      } else {
+        document.body.classList.add('dark-theme');
+        db.theme = "dark";
+      }
+      saveStorage();
+    }
+
+    function openProfilePage() {
+      document.getElementById('settings-name-input').value = db.partner.name;
+      const preview = document.getElementById('settings-avatar-preview');
+      if (db.partner.avatarData) {
+        preview.style.backgroundImage = `url(${db.partner.avatarData})`;
+        preview.innerHTML = "";
+      } else {
+        preview.style.backgroundImage = "none";
+        preview.innerHTML = `<i class="fa-solid fa-user"></i>`;
+      }
+      document.getElementById('profile-page').classList.add('active');
+    }
+
+    function closeProfilePage() {
+      document.getElementById('profile-page').classList.remove('active');
+    }
+
+    function triggerImageSelect() {
+      document.getElementById('avatar-file-input').click();
+    }
+
+    function handleImageUpload(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Data = e.target.result;
+        const preview = document.getElementById('settings-avatar-preview');
+        preview.style.backgroundImage = `url(${base64Data})`;
+        preview.innerHTML = "";
+        preview.dataset.tempSrc = base64Data;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function getMessageTextById(id) {
+      const found = db.messages.find(m => m.id === id);
+      return found ? found.text : "";
+    }
+
+    function saveProfileData() {
+      const newName = document.getElementById('settings-name-input').value.trim();
+      if (!newName) return;
+      db.partner.name = newName;
+      const preview = document.getElementById('settings-avatar-preview');
+      if (preview.dataset.tempSrc) {
+        db.partner.avatarData = preview.dataset.tempSrc;
+      }
+      saveStorage();
+      updateProfileUI();
+      renderTimeline();
+      closeProfilePage();
+    }
+
+    function handleSendTrigger() {
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      if (currentReplyTargetId !== null) {
+        executeDirectReply(text);
+      } else {
+        openSendMenuSheet();
+      }
+    }
+
+    function executeDirectReply(text) {
+      const now = Date.now();
+      db.messages.push({
+        id: now,
+        type: "reply",
+        text: text,
+        time: now,
+        replyTo: currentReplyTargetId
+      });
+      cancelReplyContext();
+      saveStorage();
+      renderTimeline();
+      document.getElementById('message-input').value = "";
+    }
+
+    function openSendMenuSheet() {
+      document.getElementById('sheet-backdrop').style.display = 'block';
+      document.getElementById('send-menu-sheet').style.display = 'flex';
+      
+      selectedMode = null;
+      selectedSecondsValue = 0;
+      document.querySelectorAll('.time-chip-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('custom-time-box').style.display = 'none';
+      document.getElementById('final-capsule-send-btn').disabled = true; 
+    }
+
+    function closeSendMenuSheet() {
+      document.getElementById('sheet-backdrop').style.display = 'none';
+      document.getElementById('send-menu-sheet').style.display = 'none';
+    }
+
+    function selectTimeMode(mode, seconds) {
+      selectedMode = mode;
+      selectedSecondsValue = seconds;
+
+      document.querySelectorAll('.time-chip-btn').forEach(btn => btn.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      const customBox = document.getElementById('custom-time-box');
+      if (mode === 'custom') {
+        customBox.style.display = 'flex';
+      } else {
+        customBox.style.display = 'none';
+      }
+
+      document.getElementById('final-capsule-send-btn').disabled = false;
+    }
+
+    function processCapsuleSend() {
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+      if (!text || !selectedMode) return;
+
+      const now = Date.now();
+      let seconds = selectedSecondsValue;
+
+      if (selectedMode === 'custom') {
+        const timeVal = parseInt(document.getElementById('custom-time-value').value, 10);
+        const unit = document.getElementById('custom-time-unit').value;
+        
+        if (isNaN(timeVal) || timeVal <= 0) {
+          alert("有効な数値を入力してください。");
+          return;
+        }
+
+        if (unit === 'm') seconds = timeVal * 60;
+        else if (unit === 'h') seconds = timeVal * 3600;
+        else if (unit === 'd') seconds = timeVal * 86400;
+      }
+
+      const openTime = now + (seconds * 1000);
+      db.messages.push({
+        id: now,
+        type: "capsule",
+        text: text,
+        openTime: openTime,
+        isOpened: false
+      });
+
+      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.notification) {
+        cordova.plugins.notification.local.schedule({
+          id: Math.floor(Math.random() * 100000),
+          title: `${db.partner.name}からのメッセージ`,
+          text: text,
+          at: new Date(openTime),
+          foreground: true
+        });
+      }
+
+      saveStorage();
+      renderTimeline();
+      input.value = "";
+      closeSendMenuSheet();
+    }
+
+    function openDeleteDialog(id) {
+      pendingDeleteId = id;
+      document.getElementById('delete-dialog-overlay').style.display = 'flex';
+    }
+
+    function closeDeleteDialog() {
+      pendingDeleteId = null;
+      document.getElementById('delete-dialog-overlay').style.display = 'none';
+    }
+
+    function executeConfirmDelete() {
+      if (pendingDeleteId !== null) {
+        db.messages = db.messages.filter(m => m.id !== pendingDeleteId);
+        saveStorage();
+        renderTimeline();
+      }
+      closeDeleteDialog();
+    }
+
+    function setReplyContext(id, text) {
+      currentReplyTargetId = id;
+      const indicator = document.getElementById('reply-indicator');
+      document.getElementById('reply-indicator-text').innerText = `通常返信先: 「${text.substring(0, 10)}...」`;
+      indicator.style.display = 'flex';
+      document.getElementById('message-input').focus();
+    }
+
+    function cancelReplyContext() {
+      currentReplyTargetId = null;
+      document.getElementById('reply-indicator').style.display = 'none';
+    }
+
+    function renderTimeline() {
+      const timeline = document.getElementById('chat-timeline');
+      const isAtBottom = timeline.scrollHeight - timeline.scrollTop <= timeline.clientHeight + 120;
+      
+      const fragment = document.createDocumentFragment();
+      const now = Date.now();
+
+      db.messages.forEach(msg => {
+        const row = document.createElement('div');
+        
+        if (msg.type === 'reply') {
+          row.className = "message-row me";
+          let quoteHtml = "";
+          if (msg.replyTo) {
+            const parentText = getMessageTextById(msg.replyTo);
+            if (parentText) {
+              quoteHtml = `<div class="reply-quote"><i class="fa-solid fa-quote-left" style="font-size:10px; margin-right:4px;"></i>${escapeHtml(parentText)}</div>`;
+            }
+          }
+
+          row.innerHTML = `
+            <div class="me-bubble-group">
+              ${quoteHtml}
+              <div class="bubble">${escapeHtml(msg.text)}</div>
+            </div>
+            <div class="message-actions">
+              <button class="action-btn delete-btn" onclick="openDeleteDialog(${msg.id})"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          `;
+        } else {
+          if (now >= msg.openTime) {
+            row.className = "message-row partner";
+            msg.isOpened = true;
+            
+            const avatarStyle = db.partner.avatarData ? `style="background-image:url(${db.partner.avatarData}); font-size:0;"` : "";
+            const avatarContent = db.partner.avatarData ? "" : `<i class="fa-solid fa-user"></i>`;
+
+            row.innerHTML = `
+              <div class="partner-avatar" ${avatarStyle}>${avatarContent}</div>
+              <div class="bubble">${escapeHtml(msg.text)}</div>
+              <div class="message-actions">
+                <button class="action-btn" onclick="setReplyContext(${msg.id}, '${escapeJs(msg.text)}')"><i class="fa-solid fa-reply"></i></button>
+                <button class="action-btn delete-btn" onclick="openDeleteDialog(${msg.id})"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            `;
+          } else {
+            row.className = "message-row partner locked";
+            const timeLeft = Math.ceil((msg.openTime - now) / 1000);
+            
+            let countdownStr = `あと ${timeLeft} 秒`;
+            if (timeLeft > 60) countdownStr = `あと ${Math.ceil(timeLeft / 60)} 分`;
+            if (timeLeft > 3600) countdownStr = `あと ${Math.ceil(timeLeft / 3600)} 時間`;
+            if (timeLeft > 86400) countdownStr = `あと ${Math.ceil(timeLeft / 86400)} 日`;
+
+            row.innerHTML = `
+              <div class="partner-avatar" style="background-color: var(--md-outline);"><i class="fa-solid fa-lock"></i></div>
+              <div>
+                <div class="bubble" style="color:transparent; min-width:140px;">🔒━━━━━🔒</div>
+                <div class="capsule-meta"><i class="fa-solid fa-clock"></i> ${countdownStr}</div>
+              </div>
+              <div class="message-actions">
+                <button class="action-btn delete-btn" onclick="openDeleteDialog(${msg.id})"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            `;
+          }
+        }
+        fragment.appendChild(row);
+      });
+
+      timeline.innerHTML = "";
+      timeline.appendChild(fragment);
+
+      if (isAtBottom) {
+        timeline.scrollTop = timeline.scrollHeight;
+      }
+    }
+
+    function tick() {
+      renderTimeline();
+    }
+
+    // --- 臨機応変な配置対応・5ステップ・ウォークスルーチュートリアル ---
+    function startTutorial() {
+      tutorialStep = 0;
+      document.getElementById('tutorial-overlay').style.display = 'block';
+      showTutorialStep();
+    }
+
+    function showTutorialStep() {
+      const step = tutorialSteps[tutorialStep];
+      const target = document.getElementById(step.elementId);
+      const highlight = document.getElementById('tutorial-highlight');
+      const popover = document.getElementById('tutorial-popover');
+
+      if (!target) return;
+
+      const rect = target.getBoundingClientRect();
+      const pad = 6;
+
+      // ハイライト位置をターゲットに合わせて生成
+      highlight.style.top = `${rect.top - pad}px`;
+      highlight.style.left = `${rect.left - pad}px`;
+      highlight.style.width = `${rect.width + (pad * 2)}px`;
+      highlight.style.height = `${rect.height + (pad * 2)}px`;
+
+      // 絵文字を完全に排除し、Font AwesomeのUI準拠アイコンを用いた見出しの組み立て
+      document.getElementById('tutorial-title').innerHTML = `<i class="fa-solid ${step.icon}"></i> ${step.title}`;
+      document.getElementById('tutorial-desc').innerText = step.desc;
+      document.getElementById('tutorial-progress-ui').innerText = `${tutorialStep + 1} / ${tutorialSteps.length}`;
+      document.getElementById('tutorial-next-btn').innerText = (tutorialStep === tutorialSteps.length - 1) ? "完了" : "次へ";
+
+      // 改良：あらゆる端末サイズでの食い込みを「臨機応変」に回避する高度な位置決めロジック
+      const popoverWidth = 290;
+      const popoverHeight = 220; // スタイルのmax-heightと同じ
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+
+      // 横位置の決定（はみ出さないよう画面内に収める）
+      let leftPos = Math.min(windowWidth - popoverWidth - 16, Math.max(16, rect.left));
+      popover.style.left = `${leftPos}px`;
+
+      // 縦位置の計算（ターゲットの上または下に安全な配置を試みる）
+      if (rect.top > windowHeight / 2) {
+        // ターゲットが画面の半分より下にある場合：上に配置
+        let topPos = rect.top - popoverHeight - 12;
+        if (topPos < 10) {
+          // 上部にもスペースが足りなければ画面中央寄りの安全な位置に緊急回避
+          topPos = Math.max(10, rect.top - 160);
+        }
+        popover.style.top = `${topPos}px`;
+      } else {
+        // ターゲットが画面の半分より上にある場合：下に配置
+        let topPos = rect.bottom + 12;
+        if (topPos + popoverHeight > windowHeight - 10) {
+          // 下部にもスペースが足りなければターゲットの上に被らない位置へ調整
+          topPos = Math.max(10, windowHeight - popoverHeight - 20);
+        }
+        popover.style.top = `${topPos}px`;
+      }
+    }
+
+    function nextTutorialStep() {
+      tutorialStep++;
+      if (tutorialStep >= tutorialSteps.length) {
+        closeTutorial();
+      } else {
+        showTutorialStep();
+      }
+    }
+
+    function closeTutorial() {
+      document.getElementById('tutorial-overlay').style.display = 'none';
+      localStorage.setItem('tutorial_completed_v8', 'true');
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+    function escapeJs(str) {
+      return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+  </script>
+</body>
+</html>

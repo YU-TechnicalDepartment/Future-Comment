@@ -4,41 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>時空チャット・タイムカプセル</title>
-
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#435e91">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="時空チャット">
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('PWA ServiceWorker 登録成功!', reg))
-          .catch(err => console.error('PWA ServiceWorker 登録失敗...', err));
-      });
-    }
-  </script>
-
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignal.public.js" async></script>
-  <script>
-    window.OneSignal = window.OneSignal || [];
-    OneSignal.push(function() {
-      OneSignal.init({
-        // ⚠️【最重要】ここに取得したOneSignalの「APP ID」を貼り付け！
-        appId: "d1ba7c06-4c5f-4317-b37d-c598af8dc989",
-        safari_web_id: "",
-        notifyButton: {
-          enable: true, /* 画面右下に通知設定のベルマークを自動表示 */
-        },
-      });
-    });
-  </script>
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
   <style>
     /* --- Material Design 3 ベースの動的テーマ定義 --- */
     :root {
@@ -102,7 +68,6 @@
       transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s;
     }
 
-    /* ウェルカム・オンボーディング画面 */
     #welcome-page {
       z-index: 100;
       display: flex;
@@ -199,7 +164,6 @@
       padding: 8px;
     }
 
-    /* --- チャットタイムライン --- */
     #chat-timeline {
       flex: 1;
       overflow-y: auto;
@@ -311,7 +275,6 @@
       color: var(--md-error);
     }
 
-    /* --- チャット入力エリア --- */
     .input-bar {
       background-color: var(--md-surface);
       padding: 8px 12px;
@@ -374,7 +337,6 @@
       justify-content: center;
     }
 
-    /* --- 時空送信オプションシート --- */
     .send-menu-sheet {
       position: fixed;
       bottom: 0; left: 0; width: 100vw;
@@ -451,7 +413,6 @@
       font-size: 15px;
     }
 
-    /* --- アプリ内カスタム・ダイアログ --- */
     .custom-dialog-overlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -498,7 +459,6 @@
       gap: 8px;
     }
 
-    /* --- 別画面：プロファイル設定ページ --- */
     #profile-page {
       z-index: 30;
       transform: translateX(100%);
@@ -609,7 +569,6 @@
       opacity: 0.6;
     }
 
-    /* --- チュートリアルレイヤー --- */
     #tutorial-overlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -755,7 +714,7 @@
   <div class="custom-dialog-overlay" id="delete-dialog-overlay">
     <div class="custom-dialog-card">
       <h3 class="dialog-title">メッセージの消去</h3>
-      <p class="dialog-body">このメッセージをタイムラインから完全に削除してもよろしいですか？この操作は取り消せるものではありません。</p>
+      <p class="dialog-body">このメッセージをタイムラインから完全に削除してもよろしいですか？この操作は取り消せません。</p>
       <div class="dialog-actions">
         <button class="md-btn tonal" onclick="closeDeleteDialog()">キャンセル</button>
         <button class="md-btn danger" onclick="executeConfirmDelete()">削除する</button>
@@ -792,9 +751,9 @@
 
     let tutorialStep = 0;
     const tutorialSteps = [
-      { elementId: 'partner-avatar-ui', icon: 'fa-user-gear', title: 'プロファイル設定', desc: 'ここをタップすると別画面が開かれます。対話相手の名前変更や、好きな写真のアップロードが可能です。' },
-      { elementId: 'header-theme-btn', icon: 'fa-sliders', title: 'パレット機能', desc: 'アプリの見た目を「ライトテーマ」と「ダークテーマ」にいつでも切り替えられます。' },
-      { elementId: 'header-help-btn', icon: 'fa-circle-info', title: 'ヘルプ確認', desc: '操作やアプリの仕様をもう一度確認したくなったときは、このヘルプアイコンを押すことでいつでもツアーを再開できます。' },
+      { elementId: 'partner-avatar-ui', icon: 'fa-user-gear', title: 'プロファイル設定', desc: 'ここをタップすると別画面が開き、対話相手の名前変更や写真のアップロードが可能です。' },
+      { elementId: 'header-theme-btn', icon: 'fa-sliders', title: 'パレット機能', desc: 'アプリの見た目を「ライトテーマ」と「ダークテーマ」にいつでも交互に切り替えられます。' },
+      { elementId: 'header-help-btn', icon: 'fa-circle-info', title: 'ヘルプ確認', desc: '操作やアプリの仕様をもう一度確認したくなったときは、このクエスチョンマークを押すといつでもこのツアーを再開できます。' },
       { elementId: 'chat-timeline', icon: 'fa-timeline', title: 'タイムラインの構造', desc: '過去から届く「タイムカプセル（左側）」と、あなたの「通常返信（右側）」が並びます。届く前のカプセルは鍵がかかりカウントダウンされます。' },
       { elementId: 'target-input-bar', icon: 'fa-paper-plane', title: '時空送信と通常返信', desc: 'カプセル横の矢印を押すと「通常返信」となり即時送信。何もない状態から送ると未来への「カプセル投下」となり、時間指定シートが開きます。' }
     ];
@@ -1007,10 +966,13 @@
         isOpened: false
       });
 
-      // OneSignalを使った未来へのプッシュ通知予約ロジック
-      if (typeof OneSignal !== 'undefined') {
-        OneSignal.push(function() {
-          console.log("OneSignalへのプッシュ通知連携処理をここに構築可能です。予約完了:", seconds, "秒後");
+      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.notification) {
+        cordova.plugins.notification.local.schedule({
+          id: Math.floor(Math.random() * 100000),
+          title: `${db.partner.name}からのメッセージ`,
+          text: text,
+          at: new Date(openTime),
+          foreground: true
         });
       }
 
@@ -1109,7 +1071,7 @@
             row.innerHTML = `
               <div class="partner-avatar" style="background-color: var(--md-outline);"><i class="fa-solid fa-lock"></i></div>
               <div>
-                <div class="bubble" style="color:transparent; min-width:140px; border:1px dashed var(--md-outline); background:none; filter:none; display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-lock" style="color:var(--md-outline);"></i></div>
+                <div class="bubble" style="color:transparent; min-width:140px;">🔒━━━━━🔒</div>
                 <div class="capsule-meta"><i class="fa-solid fa-clock"></i> ${countdownStr}</div>
               </div>
               <div class="message-actions">
@@ -1133,7 +1095,6 @@
       renderTimeline();
     }
 
-    // --- チュートリアル制御機能 ---
     function startTutorial() {
       tutorialStep = 0;
       document.getElementById('tutorial-overlay').style.display = 'block';
@@ -1171,11 +1132,15 @@
 
       if (rect.top > windowHeight / 2) {
         let topPos = rect.top - popoverHeight - 12;
-        if (topPos < 10) topPos = Math.max(10, rect.top - 160);
+        if (topPos < 10) {
+          topPos = Math.max(10, rect.top - 160);
+        }
         popover.style.top = `${topPos}px`;
       } else {
         let topPos = rect.bottom + 12;
-        if (topPos + popoverHeight > windowHeight - 10) topPos = Math.max(10, windowHeight - popoverHeight - 20);
+        if (topPos + popoverHeight > windowHeight - 10) {
+          topPos = Math.max(10, windowHeight - popoverHeight - 20);
+        }
         popover.style.top = `${topPos}px`;
       }
     }

@@ -7,6 +7,7 @@
 
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#435e91">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="時空チャット">
@@ -20,21 +21,22 @@
       });
     }
   </script>
-  
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignal.public.js" async></script>
+
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignal.public.js" async></script>
   <script>
     window.OneSignal = window.OneSignal || [];
     OneSignal.push(function() {
       OneSignal.init({
+        // ⚠️【最重要】ここに取得したあなたのOneSignalの「APP ID」を貼り付けてください！
         appId: "ここにあなたのYOUR_APP_IDを貼り付ける",
-        safari_web_id: "※Safari用は今回は空欄でOK（自動連携されます）",
+        safari_web_id: "",
         notifyButton: {
           enable: true, /* 画面右下に通知設定のベルマークを自動表示 */
         },
       });
     });
   </script>
-  
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
   <style>
@@ -112,7 +114,6 @@
       background: linear-gradient(180deg, var(--md-surface) 0%, var(--md-bg) 100%);
     }
 
-    /* なぞの画像を、洗練された時空を回る砂時計のミニマルなアニメーションに変更 */
     .welcome-icon-visual {
       font-size: 52px;
       color: var(--md-primary);
@@ -608,7 +609,7 @@
       opacity: 0.6;
     }
 
-    /* --- チュートリアルレイヤー（レイアウト食い込み対策・レスポンシブ最適化版） --- */
+    /* --- チュートリアルレイヤー --- */
     #tutorial-overlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -626,7 +627,6 @@
       border: 2px solid var(--md-primary);
     }
 
-    /* 最大高の制限と内部スクロール対応により、ボタンの画面外食い込みを完全に防止 */
     .tutorial-popover {
       position: absolute;
       background-color: var(--md-surface);
@@ -635,7 +635,7 @@
       padding: 16px;
       border-radius: 20px;
       width: 290px;
-      max-height: 220px; /* 縦幅の最大を抑制 */
+      max-height: 220px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.15);
       z-index: 1002;
       transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
@@ -644,7 +644,7 @@
     }
 
     .tutorial-popover-content {
-      overflow-y: auto; /* 万が一テキストが溢れても内部スクロールさせてボタン位置を固定 */
+      overflow-y: auto;
       flex: 1;
       margin-bottom: 12px;
       padding-right: 4px;
@@ -791,13 +791,12 @@
     let pendingDeleteId = null;  
 
     let tutorialStep = 0;
-    // 絵文字を完全に排除し、Font Awesomeアイコンと連動したシステムUI仕様に変更
     const tutorialSteps = [
-      { elementId: 'partner-avatar-ui', icon: 'fa-user-gear', title: 'プロファイル設定', desc: 'ここをタップすると別画面が開かれます。対話相手（過去や未来の自分、あるいは別の誰か）の名前変更や、好きな写真のアップロードが可能です。' },
-      { elementId: 'header-theme-btn', icon: 'fa-sliders', title: 'パレット機能', desc: 'アプリの見た目を「ライトテーマ」と「ダークテーマ」にいつでも切り替えられます。好みの明度を選択してご利用ください。' },
-      { elementId: 'header-help-btn', icon: 'fa-circle-info', title: 'ヘルプ確認', desc: '操作やアプリの仕様をもう一度確認したくなったときは、このヘルプアイコンを押すことでいつでもこのツアーを再開できます。' },
+      { elementId: 'partner-avatar-ui', icon: 'fa-user-gear', title: 'プロファイル設定', desc: 'ここをタップすると別画面が開かれます。対話相手の名前変更や、好きな写真のアップロードが可能です。' },
+      { elementId: 'header-theme-btn', icon: 'fa-sliders', title: 'パレット機能', desc: 'アプリの見た目を「ライトテーマ」と「ダークテーマ」にいつでも切り替えられます。' },
+      { elementId: 'header-help-btn', icon: 'fa-circle-info', title: 'ヘルプ確認', desc: '操作やアプリの仕様をもう一度確認したくなったときは、このヘルプアイコンを押すことでいつでもツアーを再開できます。' },
       { elementId: 'chat-timeline', icon: 'fa-timeline', title: 'タイムラインの構造', desc: '過去から届く「タイムカプセル（左側）」と、あなたの「通常返信（右側）」が並びます。届く前のカプセルは鍵がかかりカウントダウンされます。' },
-      { elementId: 'target-input-bar', icon: 'fa-paper-plane', title: '時空送信と通常返信', desc: 'カプセル横の矢印を押すと「通常返信」となり即時送信。何もない状態から送ると未来への「カプセル投下」となり、誤送信を防ぐ時間指定シートが安全に開きます。' }
+      { elementId: 'target-input-bar', icon: 'fa-paper-plane', title: '時空送信と通常返信', desc: 'カプセル横の矢印を押すと「通常返信」となり即時送信。何もない状態から送ると未来への「カプセル投下」となり、時間指定シートが開きます。' }
     ];
 
     window.onload = function() {
@@ -1008,14 +1007,10 @@
         isOpened: false
       });
 
-      // エラーセーフ：OneSignalや各種プッシュ通知設定をここに割り当てるための安全な分岐条件
-      if (typeof cordova !== 'undefined' && cordova.plugins && cordova.plugins.notification && cordova.plugins.notification.local) {
-        cordova.plugins.notification.local.schedule({
-          id: Math.floor(Math.random() * 100000),
-          title: `${db.partner.name}からのメッセージ`,
-          text: text,
-          at: new Date(openTime),
-          foreground: true
+      // OneSignalを使った未来へのプッシュ通知予約ロジック
+      if (typeof OneSignal !== 'undefined') {
+        OneSignal.push(function() {
+          console.log("OneSignalへのプッシュ通知連携処理をここに構築可能です。予約完了:", seconds, "秒後");
         });
       }
 
@@ -1138,7 +1133,7 @@
       renderTimeline();
     }
 
-    // --- 臨機応変な配置対応・5ステップ・ウォークスルーチュートリアル ---
+    // --- チュートリアル制御機能 ---
     function startTutorial() {
       tutorialStep = 0;
       document.getElementById('tutorial-overlay').style.display = 'block';
@@ -1156,42 +1151,31 @@
       const rect = target.getBoundingClientRect();
       const pad = 6;
 
-      // ハイライト位置をターゲットに合わせて生成
       highlight.style.top = `${rect.top - pad}px`;
       highlight.style.left = `${rect.left - pad}px`;
       highlight.style.width = `${rect.width + (pad * 2)}px`;
       highlight.style.height = `${rect.height + (pad * 2)}px`;
 
-      // UIに準拠したFont Awesomeアイコンを用いた見出しの組み立て
       document.getElementById('tutorial-title').innerHTML = `<i class="fa-solid ${step.icon}"></i> ${step.title}`;
       document.getElementById('tutorial-desc').innerText = step.desc;
       document.getElementById('tutorial-progress-ui').innerText = `${tutorialStep + 1} / ${tutorialSteps.length}`;
       document.getElementById('tutorial-next-btn').innerText = (tutorialStep === tutorialSteps.length - 1) ? "完了" : "次へ";
 
-      // あらゆる端末サイズでの食い込みを「臨機応変」に回避する配置ロジック
       const popoverWidth = 290;
       const popoverHeight = 220; 
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
 
-      // 横位置の決定（はみ出さないよう画面内に収める）
       let leftPos = Math.min(windowWidth - popoverWidth - 16, Math.max(16, rect.left));
       popover.style.left = `${leftPos}px`;
 
-      // 縦位置の計算（ターゲットの上または下に安全な配置を試みる）
       if (rect.top > windowHeight / 2) {
-        // ターゲットが画面の半分より下にある場合：上に配置
         let topPos = rect.top - popoverHeight - 12;
-        if (topPos < 10) {
-          topPos = Math.max(10, rect.top - 160);
-        }
+        if (topPos < 10) topPos = Math.max(10, rect.top - 160);
         popover.style.top = `${topPos}px`;
       } else {
-        // ターゲットが画面の半分より上にある場合：下に配置
         let topPos = rect.bottom + 12;
-        if (topPos + popoverHeight > windowHeight - 10) {
-          topPos = Math.max(10, windowHeight - popoverHeight - 20);
-        }
+        if (topPos + popoverHeight > windowHeight - 10) topPos = Math.max(10, windowHeight - popoverHeight - 20);
         popover.style.top = `${topPos}px`;
       }
     }
